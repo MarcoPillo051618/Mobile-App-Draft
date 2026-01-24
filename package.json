@@ -48,9 +48,11 @@
     "prettier": "2.8.8",
     "react-native-make": "^1.0.1",
     "react-test-renderer": "19.1.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@types/bun": "latest"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "module": "index.js"
 }

@@ -144,20 +144,27 @@ export const getDeviceMembers = async (deviceId) => {
     const deviceRef = firestore().collection("devices").doc(deviceId);
     const deviceSnap = await deviceRef.get();
 
-    if (!deviceSnap.exists) throw new Error("Device not found");
+    if (!deviceSnap.exists()) throw new Error("Device not found");
     const deviceData = deviceSnap.data();
 
-    // Only members can view members? Or only owner? Let's allow members.
-    if (!deviceData.members?.includes(user.uid)) {
+    console.log("Device owner ID: ", deviceData.owner_uid);
+    console.log("User ID: ", user.uid);
+
+    if (deviceData.owner_uid !== user.uid) {
       throw new Error("Access denied");
     }
 
     // Get accepted requests to find emails
     const requestsSnap = await firestore()
       .collection("requests")
+      .where("ownerUid", "==", user.uid)
       .where("deviceId", "==", deviceId)
       .where("status", "==", "accepted")
       .get();
+
+    if (requestsSnap.empty) {
+      return [];
+    }
 
     const emailMap = {};
     requestsSnap.forEach((doc) => {
@@ -172,7 +179,7 @@ export const getDeviceMembers = async (deviceId) => {
 
       if (uid === deviceData.owner_uid) {
         role = "owner";
-        email = "Owner"; // We might not know owner email easily unless stored
+        email = "Owner";
       } else if (uid === user.uid) {
         email = user.email || "Me";
       }
@@ -209,9 +216,6 @@ export const removeMember = async (deviceId, memberUid) => {
     await deviceRef.update({
       members: firestore.FieldValue.arrayRemove(memberUid),
     });
-
-    // Optional: Update the request status to 'revoked' or similar if we want to track it
-    // But for now, just removing from members is enough.
 
     return true;
   } catch (error) {

@@ -2,7 +2,7 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
     function isDeviceMember(deviceId) {
       let deviceData = get(/databases/$(database)/documents/devices/$(deviceId)).data;
       return request.auth != null && (
@@ -11,42 +11,39 @@ service cloud.firestore {
       );
     }
 
-		match /{document=**}{
-    	allow read, write: if request.auth != null && request.auth.uid == "UIA1lk0byYUGj3YH5JMYr0j1UNF3";
+    // Global admin override
+    match /{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == "UIA1lk0byYUGj3YH5JMYr0j1UNF3";
+    }
 
-    	match /devices/{deviceId} {
-      
-        // Owner AND Members can read device info
-        allow read: if resource.data.owner_uid == request.auth.uid || 
-                     (resource.data.members != null && request.auth.uid in resource.data.members);
+    // Device documents
+    match /devices/{deviceId} {
+      // Owner AND Members can read device info
+      allow read: if resource.data.owner_uid == request.auth.uid ||
+                   (resource.data.members != null && request.auth.uid in resource.data.members);
 
-        // User must set themselves as owner AND member
-        allow create: if request.auth != null &&
-                      request.resource.data.owner_uid == request.auth.uid &&
-                      request.resource.data.members.hasAll([request.auth.uid]);
+      // User must set themselves as owner AND member
+      allow create: if request.auth != null &&
+                    request.resource.data.owner_uid == request.auth.uid &&
+                    request.resource.data.members.hasAll([request.auth.uid]);
 
-        // (Admin/Owner only): Rename, add/remove members
-        allow update, delete: if resource.data.owner_uid == request.auth.uid;
+      // (Admin/Owner only): Rename, add/remove members
+      allow update, delete: if resource.data.owner_uid == request.auth.uid;
 
-        match /readings/{readingId} {
-          allow read: if isDeviceMember(deviceId);
-          allow create: if request.auth != null && request.resource.data.keys().hasAll(['timestamp']);
-        }
+      // Sensor readings sub-collection
+      match /readings/{readingId} {
+        allow read: if isDeviceMember(deviceId);
+        allow create: if request.auth != null && request.resource.data.keys().hasAll(['created_at']);
       }
+    }
 
-      // For Device Sharing
-      match /requests/{requestId} {
-        allow create: if request.auth != null && request.resource.data.requesterUid == request.auth.uid;
+    // Device sharing requests — Owner-only access
+    match /requests/{requestId} {
+      // Any authenticated user can create a request for themselves
+      allow create: if request.auth != null && request.resource.data.requesterUid == request.auth.uid;
 
-        // The Owner (recipient) OR the Requester can view
-        allow read: if request.auth != null && (
-          resource.data.ownerUid == request.auth.uid || 
-          resource.data.requesterUid == request.auth.uid
-        );
-
-        // Only the Owner (Admin) can accept/reject
-        allow update: if request.auth != null && resource.data.ownerUid == request.auth.uid;
-      }
+      // Only the device owner can read, update, or delete requests
+      allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
   }
 }

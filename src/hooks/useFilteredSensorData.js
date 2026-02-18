@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from "react";
  * @param {Date}   startDate - Start of filter range (inclusive)
  * @param {Date}   endDate   - End of filter range (inclusive)
  * @param {number} limit     - Max documents to fetch (default: 200)
- * @returns {{ data: Array, loading: boolean, error: string|null }}
+ * @returns {{ data: Array<{ id: string, createdAt: Date, temp: number, pH: number, ppm: number, millisiemenspermeter: number }>, loading: boolean, error: string|null }}
  */
 export const useFilteredSensorData = (
   deviceId,
@@ -72,21 +72,26 @@ export const useFilteredSensorData = (
       .collection("devices")
       .doc(deviceId)
       .collection("readings")
-      .where("timestamp", ">=", firestore.Timestamp.fromDate(normalizedStart))
-      .where("timestamp", "<=", firestore.Timestamp.fromDate(normalizedEnd))
-      .orderBy("timestamp", "asc")
+      .where("created_at", ">=", firestore.Timestamp.fromDate(normalizedStart))
+      .where("created_at", "<=", firestore.Timestamp.fromDate(normalizedEnd))
+      .orderBy("created_at", "asc")
       .limit(limit);
 
     const unsubscribe = query.onSnapshot(
       (snapshot) => {
         const readings = snapshot.docs.map((doc) => {
           const d = doc.data();
+
           return {
             id: doc.id,
-            ...d,
-            timestamp: d.timestamp ? d.timestamp.toDate() : new Date(),
+            millisiemenspermeter: Math.round(d.millisiemenspermeter),
+            ph: Math.round(d.pH),
+            ppm: Math.round(d.ppm),
+            temp: Math.round(d.temp),
+            timestamp: d.created_at ? d.created_at.toDate() : new Date(),
           };
         });
+
         setData(readings);
         setLoading(false);
       },
@@ -94,9 +99,7 @@ export const useFilteredSensorData = (
         console.error("useFilteredSensorData error:", err);
 
         if (err.code === "firestore/permission-denied") {
-          setError(
-            "Access denied. You may not be the owner of this device.",
-          );
+          setError("Access denied. You may not be the owner of this device.");
         } else {
           setError(err.message || "Failed to fetch readings");
         }

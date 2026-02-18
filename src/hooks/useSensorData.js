@@ -15,18 +15,21 @@ export const useSensorData = (deviceId) => {
       .collection("devices")
       .doc(deviceId)
       .collection("readings")
-      .orderBy("timestamp", "desc")
+      .orderBy("created_at", "desc")
       .limit(20);
 
     const unsubscribe = query.onSnapshot(
       (snapshot) => {
-        const readings = snapshot.docs.map(doc => {
-            const d = doc.data();
-            return {
-                id: doc.id,
-                ...d,
-                timestamp: d.timestamp ? d.timestamp.toDate() : new Date()
-            };
+        const readings = snapshot.docs.map((doc) => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            millisiemenspermeter: Math.round(d.millisiemenspermeter),
+            ph: Math.round(d.pH),
+            ppm: Math.round(d.ppm),
+            temp: Math.round(d.temp),
+            timestamp: d.created_at ? d.created_at.toDate() : new Date(),
+          };
         });
         setData(readings.reverse());
         setLoading(false);
@@ -34,7 +37,7 @@ export const useSensorData = (deviceId) => {
       (error) => {
         console.error("Sensor Data Listener Error:", error);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsubscribe();

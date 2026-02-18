@@ -1,4 +1,5 @@
 /* trunk-ignore-all(prettier) */
+import auth from "@react-native-firebase/auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +16,8 @@ import SensorChart from "../src/components/SensorChart";
 import { useFilteredSensorData } from "../src/hooks/useFilteredSensorData";
 
 const RecordsScreen = ({ route, navigation }) => {
-  const { deviceId, deviceName } = route.params || {};
+  const { deviceId, deviceName, ownerUid } = route.params || {};
+  const isOwner = auth().currentUser?.uid === ownerUid;
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -29,29 +31,29 @@ const RecordsScreen = ({ route, navigation }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const {
-    data: records,
+    data,
     loading,
     error,
   } = useFilteredSensorData(deviceId, startDate, endDate);
 
   // Records for list (newest first)
-  const listRecords = useMemo(() => [...records].reverse(), [records]);
+  const listRecords = useMemo(() => [...data].reverse(), [data]);
 
   useEffect(() => {
     if (deviceName) {
       navigation.setOptions({
         title: `${deviceName} History`,
-        headerRight: () => (
+        headerRight: () => isOwner ? (
           <TouchableOpacity
             onPress={() => setShowSettingsModal(true)}
             style={{ marginRight: 16 }}
           >
             <MaterialCommunityIcons name="cog" size={24} color="#007AFF" />
           </TouchableOpacity>
-        ),
+        ) : null,
       });
     }
-  }, [deviceName, navigation]);
+  }, [deviceName, navigation, isOwner]);
 
   const handleStartChange = useCallback((date) => {
     setStartDate(date);
@@ -103,6 +105,9 @@ const RecordsScreen = ({ route, navigation }) => {
     );
   };
 
+  /**
+   * @param {{ item: { id: string, createdAt: Date, temp: number, ph: number, ppm: number, millisiemenspermeter: number } }} param0
+   */
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -221,7 +226,7 @@ const RecordsScreen = ({ route, navigation }) => {
               <Text style={styles.chartLoadingText}>Loading chart data...</Text>
             </View>
           ) : (
-            <SensorChart data={records} />
+            <SensorChart data={data} />
           )}
         </View>
       )}
@@ -231,7 +236,7 @@ const RecordsScreen = ({ route, navigation }) => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Reading History</Text>
           <Text style={styles.sectionSubtitle}>
-            {records.length} record{records.length !== 1 ? "s" : ""}
+            {data.length} record{data.length !== 1 ? "s" : ""}
           </Text>
         </View>
       )}
@@ -266,14 +271,14 @@ const RecordsScreen = ({ route, navigation }) => {
       )}
 
       {/* Content */}
-      {loading && records.length === 0 ? (
+      {loading && data.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={{ marginTop: 10, color: "#64748B" }}>
             Loading records...
           </Text>
         </View>
-      ) : records.length === 0 ? (
+      ) : data.length === 0 ? (
         <View style={styles.center}>
           <MaterialCommunityIcons
             name="file-search-outline"
@@ -307,12 +312,14 @@ const RecordsScreen = ({ route, navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
-      <DeviceSettingsModal
-        visible={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        deviceId={deviceId}
-        deviceName={deviceName}
-      />
+      {isOwner && (
+        <DeviceSettingsModal
+          visible={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          deviceId={deviceId}
+          deviceName={deviceName}
+        />
+      )}
     </View>
   );
 };

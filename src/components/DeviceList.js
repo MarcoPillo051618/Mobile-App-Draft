@@ -1,42 +1,88 @@
-import { useNavigation } from '@react-navigation/native';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useSensorData } from '../hooks/useSensorData';
+import { useNavigation } from "@react-navigation/native";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { useSensorData } from "../hooks/useSensorData";
 
 const DeviceCard = ({ device }) => {
   const { data } = useSensorData(device.id);
   const navigation = useNavigation();
   const latest = data && data.length > 0 ? data[data.length - 1] : null;
 
-  const getValue = (val, suffix = '') => (val !== undefined && val !== null ? `${val}${suffix}` : '--');
+  const getValue = (val, suffix = "") =>
+    val !== undefined && val !== null ? `${val}${suffix}` : "--";
+
+  const getTempColor = (val) => {
+    if (val === undefined || val === null) return "#94A3B8";
+    if (val < 25) return "#10B981";
+    if (val <= 35) return "#F59E0B";
+    return "#EF4444";
+  };
+
+  const getPhColor = (val) => {
+    if (val === undefined || val === null) return "#94A3B8";
+    if (val >= 6.5 && val <= 8.5) return "#10B981";
+    return "#EF4444";
+  };
 
   return (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('Records', {
-        deviceId: device.id,
-        deviceName: device.device_name
-      })}
+      onPress={() =>
+        navigation.navigate("Records", {
+          deviceId: device.id,
+          deviceName: device.device_name,
+          ownerUid: device.owner_uid,
+        })
+      }
     >
       <View style={styles.cardHeader}>
         <View style={styles.iconContainer}>
           <MaterialCommunityIcons name="water-pump" size={24} color="#007AFF" />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.deviceName}>{device.device_name || "Unknown Device"}</Text>
+          <Text style={styles.deviceName}>
+            {device.device_name || "Unknown Device"}
+          </Text>
           <Text style={styles.deviceId}>ID: {device.id}</Text>
         </View>
-        <View style={[styles.statusDot, { backgroundColor: latest ? '#10B981' : '#CBD5E1' }]} />
-        <MaterialCommunityIcons name="chevron-right" size={24} color="#CBD5E1" />
+        <View
+          style={[
+            styles.statusDot,
+            { backgroundColor: latest ? "#10B981" : "#CBD5E1" },
+          ]}
+        />
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={24}
+          color="#CBD5E1"
+        />
       </View>
 
       <View style={styles.readingsRow}>
-        <ReadingItem label="pH Level" value={getValue(latest?.ph)} icon="flask" color="#4D96FF" />
-        <ReadingItem label="Turbidity" value={getValue(latest?.turbidity, ' NTU')} icon="water" color="#00C49A" />
+        <ReadingItem
+          label="pH Level"
+          value={getValue(latest?.ph)}
+          icon="flask"
+          color={getPhColor(latest?.ph)}
+        />
+        <ReadingItem
+          label="Temp"
+          value={getValue(latest?.temp)}
+          icon="thermometer"
+          color={getTempColor(latest?.temp)}
+        />
       </View>
 
       <Text style={styles.timestamp}>
-         {latest ? `Last updated: ${latest.timestamp.toLocaleTimeString()}` : 'Waiting for data...'}
+        {latest
+          ? `Last updated: ${latest.timestamp.toLocaleTimeString()}`
+          : "Waiting for data..."}
       </Text>
     </TouchableOpacity>
   );
@@ -44,7 +90,12 @@ const DeviceCard = ({ device }) => {
 
 const ReadingItem = ({ label, value, icon, color }) => (
   <View style={styles.readingItem}>
-    <MaterialCommunityIcons name={icon} size={20} color={color} style={{ marginBottom: 4 }} />
+    <MaterialCommunityIcons
+      name={icon}
+      size={20}
+      color={color}
+      style={{ marginBottom: 4 }}
+    />
     <Text style={styles.readingLabel}>{label}</Text>
     <Text style={[styles.readingValue, { color }]}>{value}</Text>
   </View>
@@ -77,13 +128,13 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyText: {
-    color: '#94A3B8',
+    color: "#94A3B8",
   },
   card: {
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -94,17 +145,17 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E0F2FE',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E0F2FE",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   headerText: {
@@ -112,12 +163,12 @@ const styles = StyleSheet.create({
   },
   deviceName: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: "700",
+    color: "#1E293B",
   },
   deviceId: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: "#94A3B8",
   },
   statusDot: {
     width: 8,
@@ -126,30 +177,30 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   readingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderRadius: 12,
     padding: 12,
   },
   readingItem: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   readingLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: "#64748B",
     marginBottom: 2,
   },
   readingValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   timestamp: {
     fontSize: 12,
-    color: '#94A3B8',
-    textAlign: 'right',
+    color: "#94A3B8",
+    textAlign: "right",
   },
 });
 

@@ -23,9 +23,15 @@ const DeviceSettingsModal = ({ visible, onClose, deviceId, deviceName }) => {
       setLoading(true);
       try {
         const list = await getDeviceMembers(deviceId);
+
+        if (list.length === 0) {
+          Alert.alert("Error", "No users shared with this device.");
+          return;
+        }
+
         setMembers(list);
       } catch (error) {
-        Alert.alert("Error", "Failed to load members.");
+        Alert.alert("Error", "Failed to load shared users.");
         console.error(error);
       } finally {
         setLoading(false);
@@ -127,7 +133,7 @@ const DeviceSettingsModal = ({ visible, onClose, deviceId, deviceName }) => {
           ) : (
             <>
               <Text style={styles.sectionHeader}>
-                Members ({members.length})
+                Shared Users ({members.length})
               </Text>
               <FlatList
                 data={members}
@@ -135,7 +141,9 @@ const DeviceSettingsModal = ({ visible, onClose, deviceId, deviceName }) => {
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
-                  <Text style={styles.emptyText}>No members found.</Text>
+                  <Text style={styles.emptyText}>
+                    No users shared with this device.
+                  </Text>
                 }
               />
             </>
